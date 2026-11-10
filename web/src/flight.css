@@ -1,0 +1,46 @@
+.launch-flight { pointer-events:auto; display:inline-flex; width:auto; justify-content:center; margin-top:14px; padding:11px 24px; border:1px solid #bd965e; background:#bd965e22; color:#f1d6aa; letter-spacing:2px; font-size:11px; cursor:pointer; }
+.launch-flight:hover { background:#bd965e44; }
+.launch-flight:disabled { opacity:.4; cursor:default; }
+.flight-screen { position:fixed; inset:0; z-index:30; background:#aac0c7; color:#dcffdb; font:12px 'Segoe UI',sans-serif; text-shadow:0 1px 4px #142c24aa; }
+.flight-canvas,.flight-canvas canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
+.flight-top { position:absolute; top:26px; left:34px; right:34px; display:flex; align-items:start; justify-content:space-between; }
+.flight-top .eyebrow { color:#ecf7ef; margin:0 0 6px; }
+.flight-top strong { font-size:22px; letter-spacing:3px; display:block; }
+.flight-top span { font-size:10px; letter-spacing:2px; display:block; margin-top:7px; }
+.flight-actions { display:flex; gap:8px; }
+.flight-screen button { display:inline-flex; width:auto; justify-content:center; cursor:pointer; color:#efffeb; border:1px solid #dcffdb77; padding:10px 18px; background:#13272166; font:inherit; }
+.flight-screen button:hover { background:#132721bb; }
+.flight-heading { position:absolute; top:36px; left:50%; transform:translateX(-50%); text-align:center; font:18px monospace; letter-spacing:4px; }
+.flight-heading span { font-size:10px; }.flight-heading div { padding-top:10px; }
+.flight-reticle { position:absolute; top:43%; left:50%; width:40px; height:40px; border:1px solid #dcffdb99; border-radius:50%; transform:translate(-50%,-50%); }
+.flight-reticle span { position:absolute; top:19px; left:13px; width:12px; height:1px; background:#dcffdb; }
+.flight-reticle i { position:absolute; left:19px; top:13px; height:12px; width:1px; background:#dcffdb; }
+.flight-speed,.flight-altitude { position:absolute; top:42%; display:flex; flex-direction:column; gap:7px; font-family:monospace; }
+.flight-speed { left:8%; }.flight-altitude { right:8%; text-align:right; }
+.flight-speed output,.flight-altitude output { font-size:37px; border-top:1px solid #dcffdb99; border-bottom:1px solid #dcffdb99; padding:8px 0; min-width:120px; }
+.flight-speed small,.flight-altitude small { font-size:10px; letter-spacing:2px; }
+.flight-speed span,.flight-altitude span { font-size:10px; opacity:.8; letter-spacing:2px; }
+.flight-bottom { position:absolute; bottom:24px; left:34px; right:34px; display:flex; justify-content:space-between; align-items:end; gap:20px; }
+.flight-bottom strong,.flight-bottom div span { display:block; letter-spacing:1.5px; margin-top:7px; }
+.flight-bottom p { font-size:10px; text-align:center; line-height:1.9; margin:0; }
+.flight-bottom>span { font:10px monospace; text-align:right; max-width:200px; line-height:1.8; }
+.flight-warning { position:absolute; top:25%; width:100%; text-align:center; color:#ffe2a1; letter-spacing:3px; }
+.flight-pause-overlay { position:absolute; inset:0; background:#091b21c9; display:grid; place-items:center; backdrop-filter:blur(8px); }
+.flight-pause-overlay[hidden] { display:none; }
+.flight-pause-overlay>div { padding:35px; width:min(420px,88vw); background:#101e25dd; border:1px solid #799b9466; }
+.flight-pause-overlay h2 { color:#fff; font-size:30px; margin:10px 0 20px; }
+.flight-pause-overlay p { line-height:2; }
+.flight-pause-overlay button { display:block; width:100%; margin:10px 0; }
+.flight-pause-overlay>div { max-height:92svh; overflow-y:auto; }
+.invert-pitch { display:flex; align-items:center; gap:12px; padding:14px 0; border-top:1px solid #799b9466; border-bottom:1px solid #799b9466; cursor:pointer; }
+.invert-pitch input { width:18px; height:18px; accent-color:#b7e3c0; }
+.controls-panel .pitch-description { color:#f1d6aa; }
+@media(max-width:700px) {
+  .flight-top { top:18px; left:18px; right:18px; }.flight-top span { display:none; }
+  .flight-heading { top:95px; }.flight-speed { left:5%; }.flight-altitude { right:5%; }
+  .flight-speed output,.flight-altitude output { font-size:24px; min-width:85px; }
+  .flight-bottom { bottom:18px; left:18px; right:18px; flex-wrap:wrap; }
+  .flight-bottom p { order:3; text-align:left; width:100%; font-size:9px; }
+  .flight-bottom>span { max-width:130px; }
+  .launch-flight { margin-top:8px; padding:8px 18px; }
+}

@@ -10,7 +10,7 @@ const profiles: Record<ShipId, readonly number[]> = {
 };
 const statLabels = ['Speed', 'Mobility', 'Durability', 'Energy'];
 
-export function openShipSelect(onBack: () => void): () => void {
+export function openShipSelect(onBack: () => void, onLaunch?: (id: ShipId) => void): () => void {
   const screen = document.createElement('section');
   screen.className = 'ship-screen';
   screen.setAttribute('aria-label', 'Select your ship');
@@ -24,6 +24,8 @@ export function openShipSelect(onBack: () => void): () => void {
     <div class="selection-bottom"><div class="preview-toolbar" aria-label="Preview views"><button data-view="perspective" aria-pressed="true">Perspective</button><button data-view="top" aria-pressed="false">Top</button><button data-view="side" aria-pressed="false">Side</button><button data-view="front" aria-pressed="false">Front</button></div><p class="orbit-hint">Drag to orbit · Scroll to zoom</p><button class="reference-button">View design reference ↗</button></div>
     <dialog class="reference-dialog"><div><h3>Design reference</h3><button class="close-reference" aria-label="Close design reference">✕</button></div><img alt="Original ship design sheet supplied for modeling"></dialog>`;
   const app = document.querySelector('#app')!;
+  const launch=document.createElement('button'); launch.className='launch-flight'; launch.textContent='Launch free flight ↗';
+  screen.querySelector('.ship-identity')!.append(launch);
   app.append(screen); app.classList.add('selecting');
   const canvasHost = screen.querySelector<HTMLDivElement>('.ship-canvas')!;
   const reference = screen.querySelector<HTMLDialogElement>('dialog')!;
@@ -58,6 +60,7 @@ export function openShipSelect(onBack: () => void): () => void {
   function setBusy(busy: boolean) {
     screen.dataset.busy = String(busy);
     arrows.forEach(button => { button.disabled = busy; });
+    launch.disabled=busy || !onLaunch;
     screen.querySelectorAll<HTMLButtonElement>('[data-ship]').forEach(button => { button.disabled = busy; });
   }
   function finishTransition() {
@@ -185,6 +188,8 @@ export function openShipSelect(onBack: () => void): () => void {
     canvasHost.innerHTML = '<p class="preview-error">The hangar preview requires WebGL. Ship selection and design references remain available.</p>';
   }
   select(selected, 1, false); view(activeView);
+  launch.disabled=!renderer || !onLaunch;
+  launch.addEventListener('click',()=>{if(!animation && renderer) onLaunch?.(selected);});
   function enableShadows() { model?.traverse(child => { if (child instanceof THREE.Mesh) child.castShadow = !child.userData.noShadow; }); }
   enableShadows();
   screen.querySelector('.previous-ship')!.addEventListener('click', () => { cycle(-1); enableShadows(); });
