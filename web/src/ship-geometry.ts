@@ -55,6 +55,51 @@ export class ShipGeometry {
     for (const side of [-1, 1]) this.plate(`${name}/${side}`, outline.map(([x, span]) => [x, span * side]), height, thickness, material, bevel, taper);
   }
 
+  /** Closed panel with sampled upper and lower profiles, including interior
+   * vertices so a raised shoulder cannot collapse into a single flat polygon. */
+  sculptedPanel(name: string, outline: readonly PlanPoint[], top: (x:number,s:number)=>number, bottom: (x:number,s:number)=>number) {
+    const points=outline.map(p=>[...p] as [number,number]);
+    let triangles=THREE.ShapeUtils.triangulateShape(points.map(([x,s])=>new THREE.Vector2(x,s)),[]);
+    const midpoints=new Map<string,number>();
+    const midpoint=(a:number,b:number)=>{
+      const key=a<b ? `${a}/${b}` : `${b}/${a}`;
+      const existing=midpoints.get(key); if(existing!==undefined) return existing;
+      const index=points.length;
+      points.push([(points[a][0]+points[b][0])/2,(points[a][1]+points[b][1])/2]); midpoints.set(key,index); return index;
+    };
+    for(let level=0;level<4;level++) triangles=triangles.flatMap(([a,b,c])=>{
+      const ab=midpoint(a,b),bc=midpoint(b,c),ca=midpoint(c,a);
+      return [[a,ab,ca],[ab,b,bc],[ca,bc,c],[ab,bc,ca]];
+    });
+    const boundary=(a:number,b:number,depth:number):number[]=>depth===0 ? [a] : [...boundary(a,midpoint(a,b),depth-1),...boundary(midpoint(a,b),b,depth-1)];
+    const perimeter=outline.flatMap((_,i)=>boundary(i,(i+1)%outline.length,4));
+    const count=points.length, positions:number[]=[], indices:number[]=[];
+    for(const surface of [top,bottom]) for(const [x,s] of points) {
+      const p=this.point(x,s,surface(x,s)); positions.push(p.x,p.y,p.z);
+    }
+    for(const [a,b,c] of triangles) {
+      // Correct the triangulator's winding in the ship's X/Z plane.
+      const u=points[a],v=points[b],w=points[c];
+      const forward=(v[0]-u[0])*(w[1]-u[1])-(v[1]-u[1])*(w[0]-u[0]) < 0;
+      const order=forward ? [a,b,c] : [a,c,b];
+      indices.push(...order,order[2]+count,order[1]+count,order[0]+count);
+    }
+    const clockwise=THREE.ShapeUtils.isClockWise(outline.map(([x,s])=>new THREE.Vector2(x,s)));
+    for(let i=0;i<perimeter.length;i++) {
+      const a=perimeter[i],b=perimeter[(i+1)%perimeter.length];
+      // Separate side-wall normals from the deck: averaging inward walls into
+      // its perimeter produced false dents along the shoulder's silhouette.
+      const start=positions.length/3;
+      for(const index of [a,b,a+count,b+count]) positions.push(...positions.slice(index*3,index*3+3));
+      const wall=clockwise ? [0,2,1,1,2,3] : [0,1,2,1,3,2];
+      indices.push(...wall.map(index=>start+index));
+    }
+    const geometry=new THREE.BufferGeometry(); geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+    geometry.setIndex(indices); geometry.computeVertexNormals();
+    const material=this.hull.clone(); material.side=THREE.DoubleSide;
+    return this.mesh(geometry,material,name);
+  }
+
   /** Rounded fuselage/pod with independently traced top and bottom profiles. */
   loft(name: string, sections: readonly Section[], material: THREE.Material = this.hull, offset = 0, canopy = false, angular = false) {
     const segments = canopy ? 20 : 32;
@@ -181,7 +226,7 @@ export class ShipGeometry {
   }
 
   /** Structural shoulder with a sloped front face and an actual open recess. */
-  rootFairing(name: string, side: number, outline: [PlanPoint,PlanPoint,PlanPoint,PlanPoint], top: number, bottom: number) {
+  rootFairing(name: string, side: number, outline: [PlanPoint,PlanPoint,PlanPoint,PlanPoint], top: number, bottom: number, join?: readonly [number,number,number]) {
     const upper=outline.map(([x,s],i)=>this.point(x,s*side,top-(i<2 ? 1.5 : 0)));
     const lower=outline.map(([x,s],i)=>this.point(x+(i<2 ? 0 : 2), (s-(i===3 ? 1.5 : 0))*side,bottom+(i<2 ? 2 : 0)));
     const positions: number[]=[];
@@ -196,6 +241,18 @@ export class ShipGeometry {
     const hole=[onFace(0.17,0.2),onFace(0.85,0.2),onFace(0.85,0.82),onFace(0.17,0.82)];
     // Four frame strips surround the hole; no front polygon covers its center.
     for(let i=0;i<4;i++) { const j=(i+1)%4; quad(face[i],face[j],hole[j],hole[i]); }
+    if (join) {
+      // A narrow swept transition preserves the smaller front opening while
+      // meeting the existing grille's taller inboard edge.
+      const rearTop=upper[1].clone().add(new THREE.Vector3(side*0.35*PLAN_SCALE,0,0));
+      const rearBottom=lower[1].clone().add(new THREE.Vector3(side*0.35*PLAN_SCALE,0,0));
+      const frontTop=this.point(join[0],(outline[2][1]+0.35)*side,join[1]);
+      const frontBottom=this.point(join[0],(outline[2][1]+0.35)*side,join[2]);
+      quad(upper[1],upper[2],frontTop,rearTop);
+      quad(lower[2],lower[1],rearBottom,frontBottom);
+      quad(upper[2],lower[2],frontBottom,frontTop);
+      quad(rearTop,frontTop,frontBottom,rearBottom);
+    }
     const geometry=new THREE.BufferGeometry();
     geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3)); geometry.computeVertexNormals();
     const material=this.hull.clone(); material.side=THREE.DoubleSide;
@@ -278,20 +335,68 @@ export class ShipGeometry {
     geometry.computeVertexNormals(); this.mesh(geometry,this.dark,`${name}/back`);
   }
 
-  ovalPort(name: string, x: number, span: number, height: number, length: number, width: number) {
+  /** Cut a longitudinal bore through the swept shoulder. The mouth follows the
+   * skin, but the bore axis remains parallel to the ship's forward (-Z) axis. */
+  incineratorSlot(name: string, shoulder: THREE.Mesh, span: number, height: number, radius: number) {
     this.root.updateMatrixWorld(true);
-    const ray = new THREE.Raycaster(this.point(x,span,100), new THREE.Vector3(0,-1,0));
-    const surface = ray.intersectObjects(this.root.children,false)[0];
-    const normal = surface?.face?.normal.clone() ?? new THREE.Vector3(0,1,0);
-    if (surface) normal.transformDirection(surface.object.matrixWorld);
-    const center = surface?.point ?? this.point(x,span,height);
-    for (const [size,lift,material] of [[1,0,this.panel],[0.72,0.15,this.dark]] as const) {
-      const geometry = new THREE.CircleGeometry(1,24); geometry.rotateX(-Math.PI/2);
-      const patch = this.mesh(geometry,material,name);
-      patch.scale.set(width/2*PLAN_SCALE*size,1,length/2*PLAN_SCALE*size);
-      patch.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),normal);
-      patch.position.copy(center).addScaledVector(normal,(lift+0.15)*PLAN_SCALE);
+    const segments=24, center=this.point(0,span,height), r=radius*PLAN_SCALE;
+    const ray=new THREE.Raycaster(); ray.ray.direction.set(0,0,1);
+    const mouth=Array.from({length:segments},(_,i)=>{
+      const angle=i*Math.PI*2/segments;
+      ray.ray.origin.set(center.x+Math.cos(angle)*r,center.y+Math.sin(angle)*r,-100);
+      const hit=ray.intersectObject(shoulder,false)[0];
+      if(!hit) throw new Error(`Incinerator mouth falls outside shoulder: ${name}`);
+      return hit.point.clone();
+    });
+    const backZ=Math.max(...mouth.map(p=>p.z))+6*PLAN_SCALE;
+    const planes=Array.from({length:segments},(_,i)=>{
+      const angle=(i+0.5)*Math.PI*2/segments, normal=new THREE.Vector3(Math.cos(angle),Math.sin(angle),0);
+      return new THREE.Plane(normal,-normal.dot(center)-r*Math.cos(Math.PI/segments));
+    });
+    planes.push(new THREE.Plane(new THREE.Vector3(0,0,1),-backZ));
+    type Vertex={p:THREE.Vector3;n:THREE.Vector3};
+    const source=shoulder.geometry.index ? shoulder.geometry.toNonIndexed() : shoulder.geometry.clone();
+    const positions=source.getAttribute('position'), normals=source.getAttribute('normal');
+    const carvedPositions:number[]=[], carvedNormals:number[]=[];
+    const emit=(polygon:Vertex[])=>{
+      for(let i=1;i<polygon.length-1;i++) for(const vertex of [polygon[0],polygon[i],polygon[i+1]]) {
+        carvedPositions.push(vertex.p.x,vertex.p.y,vertex.p.z); carvedNormals.push(vertex.n.x,vertex.n.y,vertex.n.z);
+      }
+    };
+    for(let i=0;i<positions.count;i+=3) {
+      let inside:Vertex[]=Array.from({length:3},(_,j)=>({p:new THREE.Vector3().fromBufferAttribute(positions,i+j),n:new THREE.Vector3().fromBufferAttribute(normals,i+j)}));
+      // Subtract a convex prism: retain each outside piece and clip only the
+      // remaining inside polygon against the next plane.
+      for(const plane of planes) {
+        if(inside.length<3) break;
+        const next:Vertex[]=[], outside:Vertex[]=[];
+        for(let j=0;j<inside.length;j++) {
+          const a=inside[j],b=inside[(j+1)%inside.length];
+          const da=plane.distanceToPoint(a.p),db=plane.distanceToPoint(b.p);
+          (da<=0 ? next : outside).push(a);
+          if((da<=0)!==(db<=0)) {
+            const t=da/(da-db), vertex={p:a.p.clone().lerp(b.p,t),n:a.n.clone().lerp(b.n,t).normalize()};
+            next.push(vertex); outside.push(vertex);
+          }
+        }
+        emit(outside); inside=next;
+      }
     }
+    const carved=new THREE.BufferGeometry();
+    carved.setAttribute('position',new THREE.Float32BufferAttribute(carvedPositions,3));
+    carved.setAttribute('normal',new THREE.Float32BufferAttribute(carvedNormals,3));
+    source.dispose(); shoulder.geometry.dispose(); shoulder.geometry=carved;
+    const wallPositions:number[]=[];
+    for(let i=0;i<segments;i++) {
+      const a=mouth[i],b=mouth[(i+1)%segments],c=new THREE.Vector3(a.x,a.y,backZ),d=new THREE.Vector3(b.x,b.y,backZ);
+      for(const p of [a,c,b,b,c,d]) wallPositions.push(p.x,p.y,p.z);
+    }
+    const walls=new THREE.BufferGeometry(); walls.setAttribute('position',new THREE.Float32BufferAttribute(wallPositions,3)); walls.computeVertexNormals();
+    const lining=this.panel.clone(); lining.side=THREE.DoubleSide;
+    this.mesh(walls,lining,`${name}/bore`);
+    const back=this.mesh(new THREE.CircleGeometry(r,segments),this.dark,`${name}/back`);
+    back.position.set(center.x,center.y,backZ);
+    this.line(`${name}/rim`,[...mouth,mouth[0]].map(p=>[this.origin-p.z/PLAN_SCALE,p.x/PLAN_SCALE,p.y/PLAN_SCALE]),0.18,this.panel,true);
   }
 
   sideRecess(name: string, outline: readonly (readonly [longitudinal: number, height: number])[], span: number) {
@@ -301,13 +406,25 @@ export class ShipGeometry {
 
   /** Recessed, ribbed rectangular stern visible in all four top views. */
   exhaust(x: number, width: number, height: number, length: number) {
-    const housing = this.mesh(new THREE.BoxGeometry(width * 2 * PLAN_SCALE, height * PLAN_SCALE, length * PLAN_SCALE), this.panel, 'drive/housing');
-    housing.position.copy(this.point(x, 0, -0.5));
-    const opening = this.mesh(new THREE.BoxGeometry((width * 2 - 2) * PLAN_SCALE, (height - 1.5) * PLAN_SCALE, 0.3 * PLAN_SCALE), this.dark, 'drive/recess');
-    opening.position.copy(this.point(x - length / 2 - 0.2, 0, -0.5));
+    const fuselage=this.root.getObjectByName('fuselage');
+    if(!fuselage) throw new Error('Build the fuselage before its stern grille');
+    const hullBounds=new THREE.Box3().setFromObject(fuselage);
+    const hullRear=this.origin-hullBounds.max.z/PLAN_SCALE;
+    const rear=Math.min(x-length/2,hullRear-2);
+    const front=x+length/2, depth=front-rear, center=(front+rear)/2;
+    // Four rim walls leave the rear mouth open. Keep both the ribs and recessed
+    // back aft of the hull cap, rather than painting a grille over solid hull.
+    for(const side of [-1,1]) {
+      const horizontal=this.mesh(new THREE.BoxGeometry(width*2*PLAN_SCALE,0.8*PLAN_SCALE,depth*PLAN_SCALE),this.panel,`drive/housing/horizontal/${side}`);
+      horizontal.position.copy(this.point(center,0,-0.5+side*(height/2-0.4)));
+      const vertical=this.mesh(new THREE.BoxGeometry(0.8*PLAN_SCALE,(height-1.6)*PLAN_SCALE,depth*PLAN_SCALE),this.panel,`drive/housing/vertical/${side}`);
+      vertical.position.copy(this.point(center,side*(width-0.4),-0.5));
+    }
+    const opening = this.mesh(new THREE.BoxGeometry((width * 2 - 1.6) * PLAN_SCALE, (height - 1.6) * PLAN_SCALE, 0.2 * PLAN_SCALE), this.dark, 'drive/recess');
+    opening.position.copy(this.point(rear+0.9, 0, -0.5));
     for (let i = -3; i <= 3; i++) {
       const rib = this.mesh(new THREE.BoxGeometry(0.5 * PLAN_SCALE, (height - 1.8) * PLAN_SCALE, 0.7 * PLAN_SCALE), this.hull, `drive/rib/${i}`);
-      rib.position.copy(this.point(x - length / 2 - 0.45, i * (width - 1) / 3.6, -0.5));
+      rib.position.copy(this.point(rear+0.15, i * (width - 1) / 3.6, -0.5));
     }
   }
 
@@ -319,6 +436,10 @@ export class ShipGeometry {
   }
 
   acclivityRing(x: number, height: number, radius: number) {
+    this.root.updateMatrixWorld(true);
+    const mountingSurfaces=this.root.children.filter(child => child.name==='fuselage' || child.name==='ventral/fairing');
+    const ray=new THREE.Raycaster(); ray.ray.direction.set(0,1,0);
+    const anchors: number[][]=[];
     const emission = new THREE.MeshStandardMaterial({ color:0x23cfff, emissive:0x00bfff, emissiveIntensity:4, roughness:0.25, metalness:0.15 });
     const torus = (name: string, y: number, r: number, tube: number, material: THREE.Material) => {
       const ring = this.mesh(new THREE.TorusGeometry(r*PLAN_SCALE,tube*PLAN_SCALE,12,64),material,`acclivity/${name}`);
@@ -330,8 +451,18 @@ export class ShipGeometry {
     for(let i=0;i<4;i++) {
       const angle=Math.PI/4+i*Math.PI/2;
       const dx=Math.cos(angle)*radius, span=Math.sin(angle)*radius;
-      this.line(`acclivity/bracket/${i}`,[[x+dx*0.75,span*0.75,height+6],[x+dx,span,height+3],[x+dx,span,height+1.5]],0.85,this.panel,true);
+      const anchorX=x+dx*0.75, anchorSpan=span*0.75;
+      ray.ray.origin.copy(this.point(anchorX,anchorSpan,-100));
+      const hit=ray.intersectObjects(mountingSurfaces,false)[0];
+      if (!hit) throw new Error(`Missing acclivity mounting surface at ${anchorX}, ${anchorSpan}`);
+      const anchorHeight=hit.point.y/PLAN_SCALE;
+      anchors.push([anchorX,anchorSpan,anchorHeight]);
+      this.line(`acclivity/bracket/${i}`,[[anchorX,anchorSpan,anchorHeight+0.5],[x+dx,span,height+3],[x+dx,span,height+1.5]],0.85,this.panel,true);
+      const pad=this.mesh(new THREE.CylinderGeometry(1.5*PLAN_SCALE,1.5*PLAN_SCALE,0.8*PLAN_SCALE,12),this.panel,`acclivity/anchor/${i}`);
+      pad.position.copy(hit.point);
+      if(hit.face) pad.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),hit.face.normal.clone().transformDirection(hit.object.matrixWorld));
     }
+    this.root.userData.acclivityAnchors=anchors;
     // Local halos keep the ring luminous without applying bloom to the whole hangar.
     for(const [tube,opacity] of [[1.8,0.14],[2.8,0.06],[4,0.025]]) {
       const glow = torus(`glow/${tube}`,height,radius,tube,new THREE.MeshBasicMaterial({color:0x00bfff,transparent:true,opacity,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));

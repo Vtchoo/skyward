@@ -60,12 +60,59 @@ test('ship geometry matches reference proportions and renders comparison sheets'
         const image=new Image(); image.src=renderer.domElement.toDataURL(); await image.decode(); card.append(image);
         document.querySelector('#sheets')!.append(card);
       }
+      const stern=model.getObjectByName('drive/recess');
+      const sternBounds=new THREE.Box3().setFromObject(stern);
+      const sternCenter=sternBounds.getCenter(new THREE.Vector3());
+      const rearCamera=new THREE.OrthographicCamera(-2.6,2.6,2.6*530/1360,-2.6*530/1360,0.1,150);
+      rearCamera.position.copy(sternCenter).add(new THREE.Vector3(2,1,6)); rearCamera.lookAt(sternCenter);
+      renderer.render(scene,rearCamera);
+      const rearCard=document.createElement('div'); rearCard.className='card';
+      rearCard.innerHTML='<label>REAR / GRILLE CLEARANCE DETAIL</label>';
+      const rearImage=new Image(); rearImage.src=renderer.domElement.toDataURL(); await rearImage.decode(); rearCard.append(rearImage);
+      document.querySelector('#sheets')!.append(rearCard);
       let finite=true;
       model.traverse((object: any)=>{if(object.isMesh){const positions=object.geometry.getAttribute('position'); for(let i=0;i<positions.array.length;i++) if(!Number.isFinite(positions.array[i])) finite=false;}});
+      // Check the actual bracket vertices penetrate the hull underside. A fixed
+      // bracket length previously passed dimension checks while leaving a gap.
+      model.updateMatrixWorld(true);
+      const hulls=model.children.filter((object:any)=>object.name==='fuselage' || object.name==='ventral/fairing');
+      const ray=new THREE.Raycaster(); ray.ray.direction.set(0,1,0);
+      const connectedBrackets=Array.from({length:4},(_,i)=>{
+        const bracket=model.getObjectByName(`acclivity/bracket/${i}`);
+        if(!bracket) return false;
+        const vertices=bracket.geometry.getAttribute('position');
+        for(let j=0;j<vertices.count;j++) {
+          const vertex=new THREE.Vector3().fromBufferAttribute(vertices,j).applyMatrix4(bracket.matrixWorld);
+          ray.ray.origin.set(vertex.x,-100,vertex.z);
+          const hit=ray.intersectObjects(hulls,false)[0];
+          if(hit && vertex.y>=hit.point.y && vertex.y-hit.point.y<0.2) return true;
+        }
+        return false;
+      });
+      ray.ray.direction.set(0,0,-1);
+      const rearOcclusions:string[]=[];
+      for(const u of [0.15,0.35,0.5,0.65,0.85]) for(const v of [0.2,0.5,0.8]) {
+        ray.ray.origin.set(THREE.MathUtils.lerp(sternBounds.min.x,sternBounds.max.x,u),THREE.MathUtils.lerp(sternBounds.min.y,sternBounds.max.y,v),bounds.max.z+10);
+        const hit=ray.intersectObject(model,true)[0];
+        if(!hit?.object.name.startsWith('drive/')) rearOcclusions.push(hit?.object.name ?? 'missing grille');
+      }
+      const incinerators=model.children.filter((object:any)=>object.name.startsWith('incinerator/') && object.name.endsWith('/back'));
+      const blockedIncinerators:string[]=[];
+      ray.ray.direction.set(0,0,1);
+      const meshes=model.children.filter((object:any)=>object.isMesh);
+      for(const slot of incinerators) for(const [dx,dy] of [[0,0],[-0.06,0],[0.06,0],[0,-0.06],[0,0.06]]) {
+        ray.ray.origin.set(slot.position.x+dx,slot.position.y+dy,bounds.min.z-10);
+        const hit=ray.intersectObjects(meshes,false)[0];
+        if(hit?.object!==slot) blockedIncinerators.push(`${slot.name}: ${hit?.object.name ?? 'no hit'}`);
+      }
       renderer.dispose(); renderer.forceContextLoss();
-      return {length:size.z,span:size.x,height:size.y,finite};
+      return {length:size.z,span:size.x,height:size.y,finite,connectedBrackets,rearOcclusions,incineratorCount:incinerators.length,blockedIncinerators};
     }, plan);
     expect(metrics.finite).toBe(true);
+    expect(metrics.connectedBrackets).toEqual([true,true,true,true]);
+    expect(metrics.rearOcclusions).toEqual([]);
+    expect(metrics.incineratorCount).toBe(plan.id==='m-bot' ? 4 : 0);
+    expect(metrics.blockedIncinerators).toEqual([]);
     expect(metrics.length).toBeGreaterThan(plan.length-0.8);
     expect(metrics.length).toBeLessThan(plan.length+0.8);
     expect(metrics.span).toBeGreaterThan(plan.span-0.8);
