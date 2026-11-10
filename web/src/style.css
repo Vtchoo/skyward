@@ -1,0 +1,705 @@
+:root {
+  font-family: Arial, Helvetica, sans-serif;
+  color: #eaf1f5;
+  background: #101b25;
+  font-synthesis: none;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+#app {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  padding: 0 6vw;
+  position: relative;
+  isolation: isolate;
+}
+#hangar {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+}
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+#app:before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, #050c13f5, #050c1380 45%, transparent 80%),
+    linear-gradient(
+      0deg,
+      #050c13cc,
+      transparent 35%,
+      transparent 80%,
+      #050c1366
+    );
+}
+header {
+  height: 100px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-bottom: 1px solid #a0bfd51a;
+  font-size: 10px;
+  letter-spacing: 2.5px;
+  color: #b2c2cc;
+}
+header span {
+  margin-left: auto;
+  font-size: 9px;
+  color: #8296a5;
+}
+main {
+  margin: auto 0;
+  max-width: 450px;
+  padding: 65px 0;
+}
+.eyebrow {
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: #d9a06e;
+  margin: 0 0 24px;
+}
+h1 {
+  font-size: clamp(54px, 7vw, 96px);
+  letter-spacing: 0.08em;
+  font-weight: 500;
+  line-height: 1;
+  margin: 0 0 16px;
+}
+.tagline {
+  font-size: 14px;
+  letter-spacing: 3px;
+  color: #92a6b6;
+  margin: 0 0 54px;
+}
+nav {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+button {
+  font: inherit;
+  display: flex;
+  align-items: center;
+  gap: 23px;
+  text-align: left;
+  width: 100%;
+  padding: 23px;
+  border: 1px solid #9dc3d650;
+  background: #1a3040b3;
+  color: #eaf1f5;
+  cursor: pointer;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+}
+button span {
+  font: 11px monospace;
+  color: #d9a06e;
+}
+button b {
+  font-size: 20px;
+  font-weight: 400;
+  margin-left: auto;
+  color: #d9a06e;
+}
+button:hover:enabled {
+  background: #2a4d60d9;
+  border-color: #c2ddeb;
+}
+button:focus-visible {
+  outline: 2px solid #d9a06e;
+  outline-offset: 5px;
+}
+button:disabled {
+  background: #101f2b99;
+  border-color: #7895a326;
+  color: #748591;
+  cursor: not-allowed;
+}
+button:disabled span {
+  color: #526575;
+}
+#notice {
+  min-height: 20px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #b8cad7;
+  margin: 18px 0 0;
+}
+footer {
+  min-height: 65px;
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  border-top: 1px solid #a0bfd51a;
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: #8d9eaa;
+}
+footer span:first-child {
+  color: #c49b76;
+}
+footer span:last-child {
+  margin-left: auto;
+}
+@media (max-width: 600px) {
+  #app {
+    padding: 0 7vw;
+  }
+  header {
+    height: 80px;
+    font-size: 8px;
+    letter-spacing: 1.5px;
+  }
+  header span {
+    display: none;
+  }
+  main {
+    max-width: 100%;
+    padding: 65px 0;
+  }
+  h1 {
+    font-size: clamp(42px, 11vw, 66px);
+  }
+  .eyebrow {
+    font-size: 8px;
+    letter-spacing: 2px;
+  }
+  button {
+    font-size: 15px;
+    padding: 20px;
+  }
+  footer {
+    font-size: 7px;
+    letter-spacing: 1px;
+    gap: 18px;
+  }
+  footer span:last-child {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  button {
+    transition: none;
+  }
+}
+.selecting > main,
+.selecting > header,
+.selecting > footer {
+  display: none;
+}
+.selecting:before {
+  display: none;
+}
+.selecting #hangar {
+  visibility: hidden;
+}
+.back-button {
+  width: auto;
+  border: 0;
+  background: none;
+  font-size: 11px;
+  color: #a7bccb;
+}
+.back-button:hover:enabled {
+  background: none;
+  color: white;
+  border-color: transparent;
+}
+.preview-toolbar {
+  display: flex;
+  align-items: center;
+}
+.preview-toolbar button {
+  width: auto;
+  letter-spacing: 0;
+  background: transparent;
+  border-color: transparent;
+}
+.preview-toolbar button[aria-pressed="true"] {
+  background: #d9a06e0d;
+  border-color: #d9a06e66;
+}
+.ship-canvas {
+  touch-action: none;
+}
+.ship-canvas canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.orbit-hint {
+  letter-spacing: 0.5px;
+  margin: 0;
+  text-align: center;
+}
+.reference-button {
+  border: 0;
+  background: transparent;
+  color: #e0af80;
+  gap: 0;
+}
+.reference-button:hover:enabled {
+  background: transparent;
+  color: #ffdbb7;
+}
+.reference-dialog {
+  background: #12202c;
+  color: #eef4f5;
+  border: 1px solid #a0bfd550;
+  max-width: min(94vw, 760px);
+  max-height: 92svh;
+  padding: 20px;
+}
+.reference-dialog::backdrop {
+  background: #02060cce;
+}
+.reference-dialog > div {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  margin-bottom: 15px;
+}
+.reference-dialog h3 {
+  font-size: 16px;
+  margin: 0;
+  font-weight: 400;
+}
+.reference-dialog img {
+  display: block;
+  max-width: 100%;
+  max-height: 72svh;
+  width: auto;
+  height: auto;
+  margin: auto;
+}
+.close-reference {
+  margin-left: auto;
+  width: auto;
+  padding: 8px 12px;
+}
+.preview-error {
+  line-height: 1.8;
+  color: #a9bac6;
+  font-size: 13px;
+}
+/* Full-screen hangar selection. */
+.ship-screen {
+  position: fixed;
+  inset: 0;
+  min-height: 0;
+  padding: 0;
+  display: block;
+  isolation: isolate;
+  overflow: hidden;
+  background: #101921;
+}
+.ship-screen .ship-canvas {
+  position: absolute;
+  inset: 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+}
+.hangar-shade {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      0deg,
+      #050d16f5,
+      transparent 35%,
+      transparent 65%,
+      #050d16d9
+    ),
+    linear-gradient(
+      90deg,
+      #050d1666,
+      transparent 25%,
+      transparent 75%,
+      #050d1655
+    );
+}
+.selection-heading {
+  position: absolute;
+  top: 0;
+  left: 5vw;
+  right: 5vw;
+  height: 110px;
+  padding: 22px 0;
+  display: flex;
+  align-items: center;
+  gap: 38px;
+  border-bottom: 1px solid #c3d7e528;
+}
+.selection-heading .eyebrow {
+  font-size: 8px;
+  letter-spacing: 2px;
+  margin: 0 0 8px;
+  color: #cfaa80;
+}
+.selection-heading h2 {
+  font-size: 23px;
+  letter-spacing: 1px;
+  margin: 0;
+}
+.selection-heading .back-button {
+  padding: 10px 0;
+  flex-shrink: 0;
+}
+.hangar-id {
+  margin-left: auto;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: #8ea3b3;
+}
+.ship-stats {
+  position: absolute;
+  right: 5vw;
+  top: 145px;
+  width: 225px;
+  padding: 0 0 20px;
+  border-bottom: 1px solid #b7ccd52e;
+}
+.ship-stats .eyebrow {
+  font-size: 9px;
+  letter-spacing: 2.5px;
+  margin: 0 0 22px;
+  color: #d5b28a;
+}
+.stat-row {
+  margin-bottom: 17px;
+}
+.stat-row > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  color: #c5d1d9;
+  font-size: 10px;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+.stat-row output {
+  font-family: monospace;
+  color: #d9b68a;
+}
+.stat-track {
+  height: 4px;
+  background: #6c87932e;
+}
+.stat-track > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #6f99ae, #c5d8e0);
+  transition: width 0.6s ease;
+}
+.stats-note {
+  font-size: 7px;
+  letter-spacing: 1.5px;
+  color: #7e94a4;
+  margin: 20px 0 0;
+}
+.ship-arrow {
+  position: absolute;
+  top: 51%;
+  transform: translateY(-50%);
+  width: 58px;
+  height: 74px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid #a7c0d235;
+  background: #11233155;
+  color: #d4e5ee;
+  font-size: 48px;
+  font-weight: 200;
+  line-height: 1;
+  backdrop-filter: blur(5px);
+}
+.ship-arrow:hover:enabled {
+  background: #2c4b5a88;
+  border-color: #e0b182;
+  color: #ffe2c2;
+}
+.previous-ship {
+  left: 5vw;
+}
+.next-ship {
+  right: 5vw;
+}
+.ship-arrow:disabled {
+  background: #11233133;
+  opacity: 0.4;
+  color: #9baebd;
+}
+.ship-identity {
+  position: absolute;
+  bottom: 94px;
+  left: 20%;
+  right: 20%;
+  text-align: center;
+  pointer-events: none;
+}
+.airframe-index {
+  color: #d4aa7c;
+  font: 9px monospace;
+  letter-spacing: 3px;
+  margin: 0 0 12px;
+}
+.ship-identity h3 {
+  font-size: clamp(35px, 4.5vw, 64px);
+  font-weight: 400;
+  letter-spacing: 7px;
+  text-transform: uppercase;
+  margin: 0 0 10px;
+  color: #edf4f8;
+  text-shadow: 0 3px 20px #0009;
+}
+.ship-identity #ship-description {
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  color: #a0b2c0;
+  margin: 0;
+  line-height: 1.7;
+}
+.ship-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 16px;
+  pointer-events: auto;
+}
+.ship-dots button {
+  width: 28px;
+  height: 25px;
+  border: 0;
+  background: transparent;
+  padding: 9px;
+  display: grid;
+  place-items: center;
+}
+.ship-dots button span {
+  width: 5px;
+  height: 5px;
+  background: #66808e;
+  transform: rotate(45deg);
+}
+.ship-dots button[aria-pressed="true"] span {
+  background: #e4b380;
+  box-shadow: 0 0 10px #e4b38055;
+}
+.ship-dots button:hover:enabled {
+  background: #c6dbe414;
+}
+.selection-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 5vw;
+  right: 5vw;
+  min-height: 66px;
+  border-top: 1px solid #c3d7e523;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+.selection-bottom .preview-toolbar {
+  border: 0;
+  padding: 0;
+  gap: 3px;
+  flex-wrap: nowrap;
+}
+.selection-bottom .preview-toolbar button {
+  font-size: 9px;
+  padding: 8px;
+  color: #9bb0bf;
+}
+.selection-bottom .preview-toolbar button[aria-pressed="true"] {
+  color: #e4b380;
+}
+.selection-bottom .orbit-hint {
+  padding: 0;
+  font-size: 9px;
+  color: #8195a4;
+}
+.selection-bottom .reference-button {
+  width: auto;
+  font-size: 9px;
+  letter-spacing: 0.3px;
+  padding: 9px 0;
+}
+.ship-screen .preview-error {
+  position: absolute;
+  top: 42%;
+  left: 22%;
+  right: 22%;
+  text-align: center;
+  background: #101f2cdd;
+}
+.reference-dialog {
+  z-index: 5;
+}
+@media (max-width: 700px) {
+  .selection-heading {
+    left: 6vw;
+    right: 6vw;
+    height: 94px;
+    gap: 22px;
+    padding: 16px 0;
+  }
+  .selection-heading h2 {
+    font-size: 17px;
+    letter-spacing: 0.4px;
+  }
+  .selection-heading .eyebrow {
+    font-size: 6px;
+    letter-spacing: 1.2px;
+    margin-bottom: 6px;
+  }
+  .selection-heading .back-button {
+    font-size: 9px;
+  }
+  .hangar-id {
+    display: none;
+  }
+  .ship-stats {
+    top: 118px;
+    right: 6vw;
+    width: 145px;
+    padding-bottom: 12px;
+  }
+  .ship-stats .eyebrow {
+    font-size: 7px;
+    letter-spacing: 1.7px;
+    margin-bottom: 15px;
+  }
+  .stat-row {
+    margin-bottom: 12px;
+  }
+  .stat-row > div:first-child {
+    font-size: 8px;
+    margin-bottom: 5px;
+  }
+  .stat-track {
+    height: 3px;
+  }
+  .stats-note {
+    font-size: 6px;
+    letter-spacing: 1px;
+    margin-top: 13px;
+  }
+  .ship-arrow {
+    width: 36px;
+    height: 58px;
+    font-size: 36px;
+    top: 53%;
+  }
+  .previous-ship {
+    left: 4vw;
+  }
+  .next-ship {
+    right: 4vw;
+  }
+  .ship-identity {
+    left: 12%;
+    right: 12%;
+    bottom: 105px;
+  }
+  .ship-identity h3 {
+    font-size: 36px;
+    letter-spacing: 5px;
+  }
+  .airframe-index {
+    font-size: 7px;
+    letter-spacing: 2px;
+  }
+  .ship-identity #ship-description {
+    font-size: 9px;
+    line-height: 1.6;
+  }
+  .ship-dots {
+    margin-top: 10px;
+  }
+  .selection-bottom {
+    left: 6vw;
+    right: 6vw;
+    min-height: 82px;
+    align-content: center;
+    flex-wrap: wrap;
+    gap: 3px 10px;
+    padding: 10px 0;
+  }
+  .selection-bottom .orbit-hint {
+    display: none;
+  }
+  .selection-bottom .preview-toolbar {
+    gap: 0;
+  }
+  .selection-bottom .preview-toolbar button {
+    font-size: 8px;
+    padding: 7px 6px;
+  }
+  .selection-bottom .reference-button {
+    font-size: 8px;
+  }
+  .ship-screen .preview-error {
+    left: 17%;
+    right: 17%;
+    font-size: 11px;
+    padding: 15px;
+  }
+}
+@media (max-height: 620px) and (min-width: 701px) {
+  .selection-heading {
+    height: 82px;
+  }
+  .ship-stats {
+    top: 102px;
+    width: 180px;
+  }
+  .stat-row {
+    margin-bottom: 11px;
+  }
+  .ship-stats .eyebrow {
+    margin-bottom: 14px;
+  }
+  .ship-identity {
+    bottom: 72px;
+  }
+  .ship-identity h3 {
+    font-size: 34px;
+    margin-bottom: 5px;
+  }
+  .ship-dots {
+    margin-top: 6px;
+  }
+  .selection-bottom {
+    min-height: 52px;
+  }
+  .stats-note {
+    margin-top: 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stat-track > span {
+    transition: none;
+  }
+}

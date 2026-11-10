@@ -1,0 +1,19 @@
+{
+  "name": "skyward",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "web",
+    "server",
+    "packages/shared"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=@skyward/web",
+    "build": "npm run build --workspace=@skyward/web",
+    "typecheck": "npm run typecheck --workspace=@skyward/web",
+    "preview": "npm run preview --workspace=@skyward/web"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.0"
+  }
+}
