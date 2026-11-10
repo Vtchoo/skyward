@@ -56,14 +56,12 @@ function poco() {
   const b = new ShipGeometry(124);
   const wing = (_x: number, span: number) => wingSurface('poco', span);
   b.loft('fuselage', [[32,7,4,-4],[43,11,7,-8],[54,14,9,-10],[73,14.5,9,-10],[91,13,8,-8],[104,10.5,6,-6],[171,5,3,-3],[215,1.3,1,-1],[231,0.08,0.1,-0.1]]);
-  b.pairedPlate('wing/root-fairing', [[43,13],[49,23],[82,24],[103,13]], 4.5, 3.5, b.hull);
+  for (const side of [-1,1]) b.rootFairing(`wing/root-fairing/${side}`,side,[[43,12],[49,23],[93,23],[95,12]],6.5,-6.5);
   for (const side of [-1,1]) b.grilledWedge(`wing/intake-wedge/${side}`,side);
   b.pairedPlate('wing/outer-panel', [[39,65],[61,68],[70,48],[81,36],[53,32],[47,45]], wing, 1.3);
   b.pairedPlate('wing/tip-rail', [[36,65],[65,70],[60,66],[38,62]], wing, 1.6, b.hull, 0.25);
   for (const side of [-1,1]) {
     b.loft(`wing/tip-fairing/${side}`, [[35,0.6,-2,-5],[39,1.8,-1,-5],[60,1.5,-1.5,-5],[66,0.15,-2.5,-3.5]], b.hull, side*67);
-    b.loft(`wing/root-nacelle/${side}`, [[43,4,4,-4],[54,7,8,-8],[78,7,8,-8],[98,6.5,8,-8],[103,5.5,6,-7]], b.hull, side*18, false, true);
-    b.intake(`wing/root-intake/${side}`, 107, side*18, 2, 9, 3);
   }
   for (let i = 0; i < 3; i++) {
     const span = 32 + i * 4.1;
@@ -74,7 +72,7 @@ function poco() {
   b.panelLine('wing/cross-seams', [[42,56],[63,58]], wing);
   b.panelLine('wing/spear-seams', [[66,25],[69,31],[89,32],[87,25]], 6);
   b.panelLine('wing/root-seam', [[48,16],[82,17],[97,14]], 6.5);
-  for (const side of [-1,1]) b.hatch(`wing/root-fastener/${side}`, 55, side*20, 8.2, 1.2);
+  for (const side of [-1,1]) b.hatch(`wing/root-fastener/${side}`, 55, side*20, 5.4, 1.2);
   ddfDetails(b, 'poco', [[48,1.5,9,7],[53,6.5,14.5,7.5],[59,7.5,16,8],[75,7,15.5,8],[88,4.5,11.8,7],[97,0.5,7,6]]);
   b.acclivityRing(78,-15,13);
   return b.root;
@@ -84,7 +82,7 @@ function largo() {
   const b = new ShipGeometry(137);
   const wing = (_x: number, span: number) => wingSurface('largo', span);
   b.loft('fuselage', [[30,8,5,-6],[43,13,10,-11],[58,17,11,-13],[82,17,10,-12],[103,13,9,-9],[115,10.5,7,-7],[179,5.8,4.5,-4.5],[213,3.2,2.8,-2.8],[264,0.08,0.1,-0.1]]);
-  b.pairedPlate('wing/root', [[39,14],[44,27],[84,30],[113,13]], wing, 3, b.hull);
+  for (const side of [-1,1]) b.rootFairing(`wing/root-fairing/${side}`,side,[[39,14],[44,27],[99,24],[103,13]],4.8,-4.8);
   for (const side of [-1,1]) b.grilledWedge(`wing/intake-wedge/${side}`,side,{
     outline:[[39,27],[42,39],[82,40],[109,24]], roof:[6,2], floor:[-6,-4], bars:9,
   });
@@ -95,9 +93,7 @@ function largo() {
     b.pairedPlate(`wing/root-rib/${i}`, [[34,span],[87-i*2,span+3],[84-i*2,span+4.5],[36,span+1.5]], (_x,s) => wingSurface('largo',s)+2.3, 1.4, b.hull, 0.3);
   }
   for (const side of [-1,1]) {
-    b.loft(`shoulder/${side}`, [[34,3,3,-3],[42,7,8,-7],[50,9,9,-10],[79,9,9,-10],[99,8,8,-9],[108,5,5,-6]], b.hull, side*20, false, true);
-    b.hatch(`shoulder/access/${side}`, 58, side*20, 9.2, 2.3);
-    b.intake(`shoulder/intake/${side}`, 112, side*20, 2, 11, 3);
+    b.hatch(`shoulder/access/${side}`, 58, side*20, 3.9, 2.3);
     // Three small fore/aft pods on each outer wing, present in plan and front views.
     for (let i = 0; i < 3; i++) {
       const span = 45 + i*9;
@@ -106,7 +102,6 @@ function largo() {
     }
   }
   b.hatch('dorsal/access', 59, 0, 11.3, 5);
-  b.pairedPlate('wing/root-inset', [[85,26],[92,26],[105,16],[101,15]], (_x,s) => wingSurface('largo',s)+1.8, 0.3, b.dark, 0.15);
   b.panelLine('wing/outer-frame', [[49,63],[49,45],[71,45],[67,62]], wing);
   b.panelLine('wing/cross-seam', [[47,54],[71,54]], wing);
   b.panelLine('wing/root-seam', [[83,27],[83,18],[95,15]], (_x,s) => wingSurface('largo',s)+2);
@@ -119,7 +114,7 @@ function scout() {
   const b = new ShipGeometry(126);
   const wing = (_x: number, span: number) => wingSurface('scout', span);
   b.loft('fuselage', [[33,6,4,-5],[47,10,7,-8],[59,12,8,-9],[77,12.5,8,-8.5],[92,10,6,-7],[105,8,5,-5],[167,5,3,-3],[193,3.6,2.4,-2.4],[243,0.08,0.1,-0.1]]);
-  b.pairedPlate('wing/root-fairing', [[43,12],[49,25],[78,29],[95,18],[113,12]], wing, 2.3, b.hull);
+  for (const side of [-1,1]) b.rootFairing(`wing/root-fairing/${side}`,side,[[43,11],[49,24],[93,22],[101,10]],4,-4.8);
   for (const side of [-1,1]) b.grilledWedge(`wing/intake-wedge/${side}`,side,{
     outline:[[32,22],[24,35],[80,35],[101,22]], roof:[5,0], floor:[-6,-3], bars:8,
   });
@@ -133,12 +128,7 @@ function scout() {
   b.panelLine('wing/trailing-frame', [[28,58],[46,43],[66,35]], wing);
   b.panelLine('wing/cross-seam', [[30,47],[43,48]], wing);
   b.panelLine('wing/root-seam', [[48,15],[77,18],[87,16]], (_x,s) => wingSurface('scout',s)+1.6);
-  b.pairedPlate('wing/root-inset', [[81,25],[87,24],[94,16],[91,15]], (_x,s) => wingSurface('scout',s)+1.7, 0.3, b.dark, 0.1);
-  for (const side of [-1,1]) {
-    b.loft(`wing/root-nacelle/${side}`, [[43,3,3,-3],[54,6.5,6,-6],[74,6.5,6,-6],[94,6,5,-6],[101,4.5,3,-4]], b.hull, side*17.5, false, true);
-    b.intake(`wing/root-intake/${side}`, 105, side*17.5, 1, 8, 2.5);
-  }
-  for (const side of [-1,1]) b.hatch(`wing/root-fastener/${side}`, 54, side*20, 6.2, 1.2);
+  for (const side of [-1,1]) b.hatch(`wing/root-fastener/${side}`, 54, side*20, 2.9, 1.2);
   ddfDetails(b, 'scout', [[47,1,7,6],[52,5.5,12.5,6.5],[59,6,14,7],[74,5.5,13,6.7],[85,3,10,6],[92,0.5,6,5]]);
   b.acclivityRing(73,-14,11);
   return b.root;

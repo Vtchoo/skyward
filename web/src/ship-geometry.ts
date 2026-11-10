@@ -180,6 +180,29 @@ export class ShipGeometry {
     this.duct(name, corners.map(([u,v]) => this.point(x,span+u*width,height+v*openingHeight)), new THREE.Vector3(0,0,-1), 4, 0.55);
   }
 
+  /** Structural shoulder with a sloped front face and an actual open recess. */
+  rootFairing(name: string, side: number, outline: [PlanPoint,PlanPoint,PlanPoint,PlanPoint], top: number, bottom: number) {
+    const upper=outline.map(([x,s],i)=>this.point(x,s*side,top-(i<2 ? 1.5 : 0)));
+    const lower=outline.map(([x,s],i)=>this.point(x+(i<2 ? 0 : 2), (s-(i===3 ? 1.5 : 0))*side,bottom+(i<2 ? 2 : 0)));
+    const positions: number[]=[];
+    const quad=(a:THREE.Vector3,b:THREE.Vector3,c:THREE.Vector3,d:THREE.Vector3)=>{
+      for(const p of [a,b,c,a,c,d]) positions.push(p.x,p.y,p.z);
+    };
+    quad(upper[0],upper[1],upper[2],upper[3]);
+    quad(lower[3],lower[2],lower[1],lower[0]);
+    for(const i of [0,1,3]) { const j=(i+1)%4; quad(upper[i],lower[i],lower[j],upper[j]); }
+    const face=[lower[3],lower[2],upper[2],upper[3]];
+    const onFace=(u:number,v:number)=>face[0].clone().lerp(face[1],u).lerp(face[3].clone().lerp(face[2],u),v);
+    const hole=[onFace(0.17,0.2),onFace(0.85,0.2),onFace(0.85,0.82),onFace(0.17,0.82)];
+    // Four frame strips surround the hole; no front polygon covers its center.
+    for(let i=0;i<4;i++) { const j=(i+1)%4; quad(face[i],face[j],hole[j],hole[i]); }
+    const geometry=new THREE.BufferGeometry();
+    geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3)); geometry.computeVertexNormals();
+    const material=this.hull.clone(); material.side=THREE.DoubleSide;
+    this.mesh(geometry,material,`${name}/shell`);
+    this.duct(`${name}/recess`,hole,new THREE.Vector3(0,0,-1),6,0.3);
+  }
+
   /** Hollow wing-root wedge with a swept, grilled front face. */
   grilledWedge(name: string, side: number, profile?: {
     outline: [PlanPoint,PlanPoint,PlanPoint,PlanPoint];
