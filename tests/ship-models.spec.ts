@@ -49,6 +49,17 @@ test('ship geometry matches reference proportions and renders comparison sheets'
         const image=new Image(); image.src=renderer.domElement.toDataURL(); await image.decode(); right.append(image); row.append(right);
         document.querySelector('#sheets')!.append(row);
       }
+      const emitter=model.getObjectByName('acclivity/emitter');
+      if (emitter) {
+        const target=emitter.position.clone();
+        const camera=new THREE.OrthographicCamera(-4,4,4*530/1360,-4*530/1360,0.1,150);
+        camera.position.copy(target).add(new THREE.Vector3(4,-6,-5)); camera.lookAt(target);
+        renderer.render(scene,camera);
+        const card=document.createElement('div'); card.className='card';
+        card.innerHTML='<label>UNDERSIDE / ACCLIVITY RING DETAIL</label>';
+        const image=new Image(); image.src=renderer.domElement.toDataURL(); await image.decode(); card.append(image);
+        document.querySelector('#sheets')!.append(card);
+      }
       let finite=true;
       model.traverse((object: any)=>{if(object.isMesh){const positions=object.geometry.getAttribute('position'); for(let i=0;i<positions.array.length;i++) if(!Number.isFinite(positions.array[i])) finite=false;}});
       renderer.dispose(); renderer.forceContextLoss();

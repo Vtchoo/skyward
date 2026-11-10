@@ -294,4 +294,27 @@ export class ShipGeometry {
     const barrel = this.mesh(new THREE.CylinderGeometry(0.45 * PLAN_SCALE, 0.6 * PLAN_SCALE, 7 * PLAN_SCALE, 8), this.panel, 'light-lance/barrel');
     barrel.rotation.x = Math.PI / 2; barrel.position.copy(this.point(x + 3.4, 0, height));
   }
+
+  acclivityRing(x: number, height: number, radius: number) {
+    const emission = new THREE.MeshStandardMaterial({ color:0x23cfff, emissive:0x00bfff, emissiveIntensity:4, roughness:0.25, metalness:0.15 });
+    const torus = (name: string, y: number, r: number, tube: number, material: THREE.Material) => {
+      const ring = this.mesh(new THREE.TorusGeometry(r*PLAN_SCALE,tube*PLAN_SCALE,12,64),material,`acclivity/${name}`);
+      ring.rotation.x=Math.PI/2; ring.position.copy(this.point(x,0,y)); return ring;
+    };
+    torus('mounting-rim',height+2.4,radius,1.25,this.dark);
+    torus('emitter',height,radius,1.1,emission);
+    torus('inner-trim',height+0.7,radius-1.8,0.4,this.frame);
+    for(let i=0;i<4;i++) {
+      const angle=Math.PI/4+i*Math.PI/2;
+      const dx=Math.cos(angle)*radius, span=Math.sin(angle)*radius;
+      this.line(`acclivity/bracket/${i}`,[[x+dx*0.75,span*0.75,height+6],[x+dx,span,height+3],[x+dx,span,height+1.5]],0.85,this.panel,true);
+    }
+    // Local halos keep the ring luminous without applying bloom to the whole hangar.
+    for(const [tube,opacity] of [[1.8,0.14],[2.8,0.06],[4,0.025]]) {
+      const glow = torus(`glow/${tube}`,height,radius,tube,new THREE.MeshBasicMaterial({color:0x00bfff,transparent:true,opacity,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
+      glow.castShadow=false; glow.receiveShadow=false; glow.userData.noShadow=true;
+    }
+    const light=new THREE.PointLight(0x13bfff,3,5,2);
+    light.name='acclivity/light'; light.position.copy(this.point(x,0,height-1)); this.root.add(light);
+  }
 }

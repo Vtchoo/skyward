@@ -185,7 +185,7 @@ export function openShipSelect(onBack: () => void): () => void {
     canvasHost.innerHTML = '<p class="preview-error">The hangar preview requires WebGL. Ship selection and design references remain available.</p>';
   }
   select(selected, 1, false); view(activeView);
-  function enableShadows() { model?.traverse(child => { if (child instanceof THREE.Mesh) child.castShadow = true; }); }
+  function enableShadows() { model?.traverse(child => { if (child instanceof THREE.Mesh) child.castShadow = !child.userData.noShadow; }); }
   enableShadows();
   screen.querySelector('.previous-ship')!.addEventListener('click', () => { cycle(-1); enableShadows(); });
   screen.querySelector('.next-ship')!.addEventListener('click', () => { cycle(1); enableShadows(); });

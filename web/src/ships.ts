@@ -76,6 +76,7 @@ function poco() {
   b.panelLine('wing/root-seam', [[48,16],[82,17],[97,14]], 6.5);
   for (const side of [-1,1]) b.hatch(`wing/root-fastener/${side}`, 55, side*20, 8.2, 1.2);
   ddfDetails(b, 'poco', [[48,1.5,9,7],[53,6.5,14.5,7.5],[59,7.5,16,8],[75,7,15.5,8],[88,4.5,11.8,7],[97,0.5,7,6]]);
+  b.acclivityRing(78,-15,13);
   return b.root;
 }
 
@@ -110,6 +111,7 @@ function largo() {
   b.panelLine('wing/cross-seam', [[47,54],[71,54]], wing);
   b.panelLine('wing/root-seam', [[83,27],[83,18],[95,15]], (_x,s) => wingSurface('largo',s)+2);
   ddfDetails(b, 'largo', [[74,2,10.5,8.5],[79,7.5,20,9],[86,8.2,21,9.5],[96,8,20.5,9],[107,4,13,8],[115,0.5,8,7]]);
+  b.acclivityRing(82,-18,16);
   return b.root;
 }
 
@@ -138,6 +140,7 @@ function scout() {
   }
   for (const side of [-1,1]) b.hatch(`wing/root-fastener/${side}`, 54, side*20, 6.2, 1.2);
   ddfDetails(b, 'scout', [[47,1,7,6],[52,5.5,12.5,6.5],[59,6,14,7],[74,5.5,13,6.7],[85,3,10,6],[92,0.5,6,5]]);
+  b.acclivityRing(73,-14,11);
   return b.root;
 }
 
@@ -168,6 +171,7 @@ function mbot() {
   for (const x of [63,78,93]) for (const side of [-1,1]) b.hatch(`rear/deck-fastener/${x}/${side}`, x, side*12, 8.7, 0.65);
   // Small ventral assembly visible under the center hull in both elevations.
   b.loft('ventral/fairing', [[84,3,-9,-12],[106,5,-9,-14],[133,3,-7,-11]], b.panel);
+  b.acclivityRing(101,-19,14);
   return b.root;
 }
 
